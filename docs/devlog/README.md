@@ -107,9 +107,9 @@ Keep README links short:
 - [Entry Title](docs/devlog/file-name.md) - one sentence explaining the update.
 ```
 
-## Daily Automation Guidance
+## Weekly Automation Guidance
 
-The daily devlog assistant should draft updates, not silently publish them. Treat it as an end-of-day learning checkpoint that helps turn real Nyx work into a short portfolio note.
+The weekly devlog assistant should draft updates, not silently publish them. Treat it as a regular learning checkpoint that helps turn real Nyx work into a short portfolio note.
 
 Recommended behavior:
 
