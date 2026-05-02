@@ -24,6 +24,11 @@ Key visual notes:
 
 See `docs/ArtPipeline.md` for practical Blender-to-Unreal guidance.
 
+## Design and Technical Docs
+
+- [Core Game GDD](docs/gdd/Nyx_Core_GDD.md) - current player-facing design direction for the fishing loop, Starwell, FTUE, merchant, Koi skills, and progression.
+- [Core Systems TDD](docs/tdd/Nyx_Core_TDD.md) - current source architecture notes for the C++ gameplay systems, save/load boundaries, validation helpers, and Blueprint handoff.
+
 ## Current Status
 
 Status: work in progress gameplay systems prototype.
@@ -251,6 +256,7 @@ Development notes capture specific learning passes while the prototype is still 
 - [Save/Load Reliability Pass](docs/devlog/2026-05-02-save-load-reliability-pass.md) - explains why Nyx separates durable player progress from transient fishing runtime state, and how restore events and stable Starwell IDs support safer save/load behavior.
 - [Save/Load Reliability + Low-Poly Visual Direction Pass](docs/devlog/2026-05-02-save-load-low-poly-pass.md) - connects save/load boundaries with the first low-poly art direction notes for the tuxedo-pattern cat, Starwell, cosmic fish, and presentation goals.
 - [Save/Load Validation + Art Pipeline Notes](docs/devlog/2026-05-02-save-load-validation-art-pipeline.md) - summarizes the PR that adds save/load validation hooks and expands the low-poly art pipeline documentation.
+- [GDD and TDD Foundations](docs/devlog/2026-05-02-gdd-tdd-foundations.md) - explains why Nyx now keeps separate design and technical documentation as the prototype grows.
 
 ## Work-in-Progress Scope
 
