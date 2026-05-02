@@ -1,176 +1,250 @@
-# Nyx First-Pass Low-Poly Art Pipeline
+# Nyx Art Pipeline
 
-Nyx is using a simple, bubbly, low-poly visual style for the first visual prototype pass. This is work-in-progress art direction for learning, iteration, and portfolio presentation; it is not final production art.
+Nyx is a work-in-progress Unreal Engine C++ cozy cosmic fishing prototype. The first visual pass uses a simple, bubbly, low-poly style so assets can be built, imported, tested, and revised quickly while still looking intentional in a portfolio.
 
-The goal is to make assets readable in Unreal while staying small enough to model, import, test, and revise quickly.
+This document describes the current art direction and first-pass production rules. It is not a final art bible.
 
-## 1. Visual Style Pillars
+## Visual Direction
 
-- Rounded shapes: avoid sharp realism; favor softened cubes, spheres, capsules, and bevelled forms.
-- Chunky silhouettes: assets should read from a gameplay camera before details matter.
-- Toy-like materials: use simple rough materials, soft gradients, and broad color zones.
-- Cozy cosmic palette: deep blue, soft violet, moonlit teal, warm cream, pearl, and small star-glow accents.
-- Squishy motion: animations should feel light and responsive, with gentle squash/stretch where appropriate.
-- Honest prototype finish: blockouts can be charming without pretending to be final art.
+Nyx should feel like a small toy world under soft cosmic light.
 
-Important identity note: the player is a tuxedo-pattern cat with natural black-and-white markings, not a cat wearing a tuxedo.
+Style pillars:
 
-## 2. Blender Modeling Guidelines
+- Simple: readable forms, low detail density, clean silhouettes.
+- Bubbly: rounded edges, soft corners, inflated forms, friendly proportions.
+- Low-poly: visible broad planes are welcome, but shapes should still feel cared for.
+- Cozy cosmic: moonlit blues, soft teals, gentle violets, pearl whites, warm wood, and small glow accents.
+- Toy-like: rough plastic, painted wood, soft ceramic, felt-like cloth, and gentle emissive details.
+- Gameplay-first: every object should read clearly from the third-person camera.
 
-General setup:
+Avoid realistic detail, noisy textures, horror-heavy shapes, sharp sci-fi plating, and overly complex materials during this pass.
 
-- Use meters in Blender and export FBX at scale 1.0.
-- Model around Unreal scale: 1 Unreal unit = 1 centimeter.
-- Keep geometry low-poly but intentionally shaped. Use bevels or extra loops only where they improve silhouette.
-- Apply transforms before export: `Ctrl+A > Rotation & Scale`.
-- Keep origins/pivots deliberate before export.
-- Name objects clearly before export so Unreal imports are readable.
+## Shape Language
 
-Asset plans:
+Use chunky silhouettes and broad forms before adding detail.
 
-### Tuxedo-Pattern Cat Blockout
+Good base shapes:
 
-- Shape breakdown: rounded head, bean-shaped torso, short chunky legs, simple tapered tail, triangular ears, large readable paws.
-- Approximate proportions: 90-110 cm tall if bipedal, or 45-60 cm shoulder height if quadruped. Head should be slightly oversized for charm.
-- Material/color zones: black back/head patches, white muzzle/chest/paws/belly, soft pink nose/inner ears, warm eye color.
-- Pivot placement: root at ground center between feet or under body center.
-- Unreal scale notes: import as skeletal mesh if animated; keep socket names aligned with `ANyxCatPlayerCharacter`.
-- Collision notes: player collision should come from the Character capsule, not detailed mesh collision.
-- Animation needs: idle breathing, walk/run, cast anticipation, reel loop, catch celebration, offering handoff.
-- Export notes: export mesh and armature together for skeletal tests; keep material slots named `M_Cat_Black`, `M_Cat_White`, `M_Cat_Accent`.
+- Squashed spheres
+- Capsules
+- Beveled cubes
+- Rounded cones
+- Thick cylinders
+- Bean-shaped bodies
+- Oversized paws, fins, rims, handles, and props
 
-### Starwell Blockout
+Readable proportions matter more than anatomical accuracy. A fish, cat, Starwell, dock plank, or fishing rod should be identifiable in grayscale before color or glow is added.
 
-- Shape breakdown: chunky round basin, thick rim, squat pedestal, shallow glowing interior, small moon/star motifs.
-- Approximate proportions: 180-220 cm diameter, 90-130 cm tall.
-- Material/color zones: stone or ceramic outer shell, pearly inner basin, glowing teal/violet center, small gold or moonlit accents.
-- Pivot placement: bottom center of the basin pedestal.
-- Unreal scale notes: assign the mesh to `AStarwell::VisualMesh`.
-- Collision notes: use `AStarwell::InteractionCollision` for interaction; mesh can keep simple/no collision.
-- Animation needs: idle pulse, offering accepted pulse, threshold reached burst, post-load restored shimmer.
-- Export notes: export static mesh as `SM_Starwell_Blockout`; keep VFX timing in Blueprint, not baked into mesh.
+## Color And Material Goals
 
-### Glow Minnow Fish
+Use a soft cosmic palette with warm cozy anchors.
 
-- Shape breakdown: rounded capsule body, simple tail fin, two side fins, tiny dorsal fin, large readable eyes.
-- Approximate proportions: 25-40 cm long.
-- Material/color zones: soft teal body, pale belly, glowing stripe or dots, rarity accent color.
-- Pivot placement: body center for swim wiggle and catch presentation.
-- Unreal scale notes: assign as `UFishDataAsset::PresentationMesh`; gameplay tuning stays in the Data Asset fields.
-- Collision notes: no detailed collision needed for first pass; use simple sphere/capsule if spawned interactively.
-- Animation needs: idle wiggle, caught bob, offering float.
-- Export notes: export as `SM_Fish_GlowMinnow_Blockout`; material slots can be `M_Fish_Body`, `M_Fish_Glow`, `M_Fish_Eye`.
+Suggested color zones:
 
-### Small Dock Platform
+- Night sky blue and soft violet for cosmic surfaces.
+- Moonlit teal for magical glow and Starwell energy.
+- Pearl, cream, and pale blue for highlights.
+- Warm wood for dock pieces and handmade tools.
+- Soft black and warm white for the tuxedo-pattern cat.
+- Rarity accents for fish, used sparingly and consistently.
 
-- Shape breakdown: chunky planks, rounded posts, simple rope loops, soft bevels.
-- Approximate proportions: 400-600 cm long, 250-350 cm wide.
-- Material/color zones: warm wood, slightly darker plank sides, soft rope tan, subtle moonlit edge tint.
-- Pivot placement: center of the platform footprint at floor height.
-- Unreal scale notes: build as modular pieces if the dock will expand later; one combined blockout is fine for the first pass.
-- Collision notes: use simple box collision for walking surface.
-- Animation needs: optional soft bobbing if it becomes a floating dock.
-- Export notes: export as `SM_Dock_Platform_Blockout`; keep plank modules separate if iteration is easier.
+Material goals:
 
-### Simple Fishing Rod
+- Prefer simple material instances over complex shader work.
+- Use broad color regions instead of tiny texture detail.
+- Keep roughness high for most toy-like surfaces.
+- Use emissive only for important read points: Starwell basin, fish glow marks, rarity accents, magical offering moments.
+- Do not let glow replace silhouette. The object should still read when emissive is disabled.
 
-- Shape breakdown: tapered curved rod, chunky handle, simple reel cylinder, short line guide shapes.
-- Approximate proportions: 120-160 cm long for a small stylized cat.
-- Material/color zones: dark rod, warm handle, small metallic reel, optional glowing lure tip.
-- Pivot placement: handle grip point where it attaches to `FishingRodSocketName`.
-- Unreal scale notes: test attached to `ANyxCatPlayerCharacter::FishingRodSocketName`.
-- Collision notes: no collision needed for first pass unless used as a world pickup.
-- Animation needs: follows cat skeletal animation; optional bend via material, control rig, or simple skeletal setup later.
-- Export notes: export as `SM_FishingRod_Blockout`; keep handle aligned with +X or the project’s chosen socket-forward convention.
+## Tuxedo-Pattern Cat Guidelines
 
-### Card/Deck Table
+The player character is a cat with natural tuxedo-pattern fur, not a cat wearing a tuxedo.
 
-- Shape breakdown: small round or square table, chunky legs, simple card tray, cosmic cloth inset.
-- Approximate proportions: 150-220 cm wide depending on camera framing.
-- Material/color zones: dark wood or blue-painted surface, soft cloth center, moon/star trim.
-- Pivot placement: floor center.
-- Unreal scale notes: can become a UI diorama prop for `UDeckComponent` later.
-- Collision notes: simple box collision if placed in the world.
-- Animation needs: card flip, draw pulse, discard swirl later.
-- Export notes: export as `SM_CardDeck_Table_Blockout`.
+Design goals:
 
-## 3. Unreal Import Guidelines
+- Simplified low-poly cat with a rounded head, bean body, chunky paws, and expressive tail.
+- Natural black-and-white markings: black head/back/tail areas, white muzzle, chest, belly, and paws.
+- Avoid suit collars, bow ties, shirt fronts, lapels, buttons, or clothing cues unless they are added later as separate optional cosmetics.
+- Keep the head slightly oversized for charm and readability.
+- Make eyes large enough to read from the gameplay camera.
+- Preserve clean material slots, such as `M_Cat_Black`, `M_Cat_White`, and `M_Cat_Accent`.
 
-- Import FBX files into a clearly named prototype folder, for example `Content/Art/Prototype/`.
-- Keep source Blender files outside Unreal or in a source-art folder only if the repo policy allows it.
-- Use soft references in data assets where possible. `UFishDataAsset` presentation mesh/material/icon fields are optional and should not drive gameplay.
-- Assign Starwell meshes in a Blueprint child of `AStarwell`, not in C++.
-- Use `ANyxCatPlayerCharacter` as the future native base for cat mesh, sockets, and animation cue hookup.
+Unreal hookup notes:
 
-## 4. Naming Conventions
+- Use `ANyxCatPlayerCharacter` as the source-code base for future player mesh, fishing rod socket, offering socket, and animation cue integration.
+- Player collision should come from the Character capsule, not detailed mesh collision.
+- Fishing rod and offering props should attach through named sockets rather than being baked into the mesh.
 
-Suggested prefixes:
+## Starwell Guidelines
 
-- Static mesh: `SM_`
-- Skeletal mesh: `SK_`
-- Skeleton: `SKEL_`
-- Physics asset: `PHYS_`
-- Material: `M_`
-- Material instance: `MI_`
-- Texture: `T_`
-- Animation sequence: `A_`
-- Blueprint: `BP_`
-- Data Asset: `DA_`
+The Starwell should be a chunky, round, cosmic basin that feels ancient but friendly.
 
-Examples:
+Shape goals:
+
+- Wide rounded basin with a thick rim.
+- Squat pedestal or soft stone base.
+- Shallow glowing interior.
+- Simple moon, star, or carved groove details.
+- Strong circular silhouette that reads from above and at third-person camera distance.
+
+Visual states to support:
+
+- Idle pulse: slow basin glow or gentle breathing light.
+- Offering accepted: short pulse from the basin center or `OfferingPoint`.
+- Threshold reached: stronger burst, upward sparkle, or ring pulse.
+- Post-load restored: subtle shimmer that refreshes presentation without implying a new reward.
+
+Unreal hookup notes:
+
+- `AStarwell::VisualMesh` receives the mesh in Blueprint or a child class.
+- `AStarwell::InteractionCollision` handles player interaction overlap.
+- `AStarwell::OfferingPoint` marks where offered fish or props move before conversion.
+- `AStarwell::VfxSpawnPoint` marks idle, offering, threshold, and restore VFX placement.
+- Keep gameplay events separate from restoration presentation events:
+  - Gameplay reward: `OnFishAccepted`, `OnOfferingThresholdReached`
+  - Presentation refresh after load: `OnStarwellStateRestored`
+
+## Fish Guidelines
+
+Fish should be simple, rounded, and instantly readable.
+
+Silhouette rules:
+
+- Use capsule or bean bodies.
+- Use large simple tail fins.
+- Keep side fins and dorsal fins broad and low-detail.
+- Use oversized eyes or face marks for charm.
+- Make rarity readable through shape and accent color, not text alone.
+- Avoid thin fins, noisy scales, or realistic anatomy in the first pass.
+
+Rarity direction:
+
+- Common: clean shapes, one glow mark or simple color contrast.
+- Uncommon: stronger accent color, extra fin shape, small pattern.
+- Rare: more distinctive silhouette, brighter glow, unique tail or crest.
+- Legendary or special: unusual silhouette, animated glow zones, stronger cosmic motifs.
+
+Unreal hookup notes:
+
+- Gameplay tuning stays in `UFishDataAsset`.
+- Visual presentation references should stay optional and separate from gameplay values.
+- Data assets can point to fish meshes, materials, or icons later, but the C++ gameplay systems should not require final art.
+
+## Animation Style
+
+Animation should feel soft, snappy, and a little squishy.
+
+Principles:
+
+- Use small anticipation before casts, offerings, and reward moments.
+- Use squash and stretch lightly, especially for fish bobbing and cat celebration.
+- Favor readable loops over realistic motion capture.
+- Keep timing clear for gameplay: cast, bite, reel, catch, offer, reward.
+- Restoration animations should look like UI or world refresh, not a second reward grant.
+
+First-pass animation targets:
+
+- Cat idle breathing, walk/run, cast anticipation, reel loop, catch success, offering handoff.
+- Starwell idle pulse, offering accepted pulse, threshold reached burst, post-load restored shimmer.
+- Fish idle wiggle, caught bob, offering float.
+- Dock optional gentle bob if it becomes floating.
+- Fishing rod socket-follow first, bend or secondary motion later.
+
+## Unreal Import Notes
+
+General import rules:
+
+- Export FBX from Blender at scale 1.0.
+- Work with Unreal scale in mind: 1 Unreal unit = 1 centimeter.
+- Apply transforms before export.
+- Keep pivots deliberate before import.
+- Use simple material slots with clear names.
+- Prefer simple collision for blockouts.
+- Do not import paid or restricted assets into public project folders unless licensing is confirmed.
+
+Recommended prototype content location:
+
+- `Content/Art/Prototype/`
+
+Recommended source-art location, if committed:
+
+- `SourceArt/`
+
+Only commit source-art files if they are yours, small enough for the repo, and intended for public sharing.
+
+## Pivots And Collision
+
+Pivot rules:
+
+- Cat: root at ground center between feet or body center, depending on rig setup.
+- Starwell: bottom center of the pedestal or basin footprint.
+- Fish: body center for swimming, bobbing, and offering animations.
+- Dock pieces: floor center or grid corner, based on modular assembly needs.
+- Fishing rod: grip point where the cat socket attaches.
+- Card/deck table props: floor center.
+
+Collision rules:
+
+- Cat uses Character capsule collision.
+- Starwell interaction uses `AStarwell::InteractionCollision`.
+- Starwell visual mesh can use no collision or simple collision.
+- Dock uses simple box collision for walkable surfaces.
+- Fish usually need no collision for the first pass unless spawned interactively.
+- Fishing rod needs no collision unless it becomes a pickup.
+
+## Naming Conventions
+
+Use Unreal-friendly names with stable prefixes.
+
+Common prefixes:
+
+- `SM_` for static mesh
+- `SK_` for skeletal mesh
+- `SKEL_` for skeleton
+- `PHYS_` for physics asset
+- `M_` for material
+- `MI_` for material instance
+- `T_` for texture
+- `A_` for animation sequence
+- `ABP_` for animation Blueprint
+- `BP_` for Blueprint
+- `DA_` for Data Asset
+- `NS_` for Niagara system
+
+Example names:
 
 - `SK_Cat_Tuxedo_Blockout`
 - `SM_Starwell_Blockout`
 - `SM_Fish_GlowMinnow_Blockout`
 - `SM_Dock_Platform_Blockout`
 - `SM_FishingRod_Blockout`
+- `SM_CardDeck_Table_Blockout`
 - `DA_Fish_GlowMinnow`
+- `MI_Starwell_BasinGlow`
+- `NS_Starwell_OfferingAccepted`
 
-## 5. Collision And Pivots
+## First Prototype Asset Targets
 
-- Use simple collision for blockouts. Prefer boxes, capsules, and spheres over generated complex collision.
-- For the cat, use the Character capsule.
-- For `AStarwell`, use `InteractionCollision` for player overlap and keep the visual mesh collision simple or disabled.
-- Pivot world props at floor center unless there is a strong reason not to.
-- Pivot held props, such as the fishing rod, at the grip point.
-- Pivot fish at body center for bobbing, swimming, and offering animations.
+Build only enough to prove the direction in-engine:
 
-## 6. Materials
+- Tuxedo-pattern cat blockout
+- Starwell blockout
+- Glow Minnow fish
+- Small dock platform
+- Simple fishing rod
+- One offering animation or VFX beat
 
-- Start with flat colors and rough surfaces.
-- Use broad readable zones instead of tiny texture detail.
-- Glow should be used sparingly: fish accents, Starwell basin, rarity cues, and offering moments.
-- Use material instances in Unreal for quick color tuning.
-- Keep gameplay rarity readable without relying only on text.
+The first pass should answer: "Does Nyx read as a cozy cosmic fishing game from the gameplay camera?"
 
-## 7. Animation Expectations
+## What Not To Commit Publicly
 
-First-pass animation should prioritize readable state changes:
+Do not commit:
 
-- Cat: idle breathing, cast anticipation, reel loop, catch success, offering handoff.
-- Starwell: idle pulse, offering accepted pulse, threshold reached burst, post-load restored shimmer.
-- Glow Minnow: swim wiggle, caught bob, offering float.
-- Dock: optional gentle bob if floating.
-- Fishing rod: attach to cat socket first; rod bending can come later.
+- Paid Marketplace assets unless the license explicitly allows public redistribution.
+- Third-party Blender, texture, audio, or animation source files without redistribution rights.
+- Private credentials, API keys, tokens, account IDs, or personal machine paths.
+- Launcher cache files or generated folders such as `Binaries`, `Intermediate`, `Saved`, and `DerivedDataCache`.
+- Temporary export files, backup files, or large unreviewed binaries.
+- Binary Unreal assets that are not intended for the public repository.
 
-Animation events can call `ANyxCatPlayerCharacter` cue functions or bind to gameplay events from `UFishingComponent` and `AStarwell`.
-
-## 8. Actor Integration Notes
-
-- `ANyxCatPlayerCharacter` owns `UFishingComponent`, `UEconomyComponent`, and `UDeckComponent` and exposes socket names for rod and offering props.
-- `AStarwell` owns `VisualMesh`, `InteractionCollision`, `OfferingPoint`, and `VfxSpawnPoint`.
-- `UFishDataAsset` owns fish gameplay tuning plus optional presentation references.
-- `ANyxGameplayDebugActor` can validate save/load and gameplay loops in PIE without final assets.
-- Keep one-time gameplay events separate from restoration events:
-  - Gameplay: `OnFishAccepted`, `OnOfferingThresholdReached`, `OnCatchCompleted`
-  - Restore/presentation refresh: `OnFishingStateRestored`, `OnStarwellStateRestored`, economy/deck save-applied events
-
-## 9. What Not To Commit Publicly
-
-- Paid third-party assets unless the license explicitly allows redistribution.
-- Marketplace source files or vendor content that should stay private.
-- Binary Unreal assets that are not intended for public release.
-- Personal machine paths, private credentials, API keys, or launcher cache files.
-- Large generated folders such as `Binaries`, `Intermediate`, `Saved`, and `DerivedDataCache`.
-
-Binary Unreal assets and paid third-party assets should be handled carefully. Public GitHub documentation can describe the pipeline and show screenshots later, but redistribution rights need to be checked before committing content.
+Binary Unreal assets such as `.uasset` and `.umap` files should be handled carefully. For a public GitHub portfolio, prefer documenting the pipeline and showing screenshots or short clips unless the asset is original, lightweight, and safe to redistribute.
