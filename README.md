@@ -250,6 +250,7 @@ Development notes capture specific learning passes while the prototype is still 
 
 - [Save/Load Reliability Pass](docs/devlog/2026-05-02-save-load-reliability-pass.md) - explains why Nyx separates durable player progress from transient fishing runtime state, and how restore events and stable Starwell IDs support safer save/load behavior.
 - [Save/Load Reliability + Low-Poly Visual Direction Pass](docs/devlog/2026-05-02-save-load-low-poly-pass.md) - connects save/load boundaries with the first low-poly art direction notes for the tuxedo-pattern cat, Starwell, cosmic fish, and presentation goals.
+- [Save/Load Validation + Art Pipeline Notes](docs/devlog/2026-05-02-save-load-validation-art-pipeline.md) - summarizes the PR that adds save/load validation hooks and expands the low-poly art pipeline documentation.
 
 ## Work-in-Progress Scope
 
