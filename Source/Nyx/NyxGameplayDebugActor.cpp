@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "FishDataAsset.h"
 #include "FishingComponent.h"
+#include "KoiSkillTreeComponent.h"
+#include "NyxFTUEComponent.h"
 #include "NyxGameplayValidation.h"
 #include "NyxSaveGame.h"
 #include "Starwell.h"
@@ -21,6 +23,8 @@ ANyxGameplayDebugActor::ANyxGameplayDebugActor()
 	FishingComponent = CreateDefaultSubobject<UFishingComponent>(TEXT("FishingComponent"));
 	EconomyComponent = CreateDefaultSubobject<UEconomyComponent>(TEXT("EconomyComponent"));
 	DeckComponent = CreateDefaultSubobject<UDeckComponent>(TEXT("DeckComponent"));
+	SkillTreeComponent = CreateDefaultSubobject<UKoiSkillTreeComponent>(TEXT("SkillTreeComponent"));
+	FTUEComponent = CreateDefaultSubobject<UNyxFTUEComponent>(TEXT("FTUEComponent"));
 
 	StarwellTarget = nullptr;
 	SpawnedStarwell = nullptr;
@@ -53,6 +57,16 @@ void ANyxGameplayDebugActor::RefreshRewardTargets()
 	if (FishingComponent != nullptr)
 	{
 		FishingComponent->SetCatchRewardTargets(EnsureStarwell(), EconomyComponent.Get());
+	}
+
+	if (SkillTreeComponent != nullptr)
+	{
+		SkillTreeComponent->ApplySkillModifiers(FishingComponent.Get(), GetResolvedStarwell());
+	}
+
+	if (FTUEComponent != nullptr)
+	{
+		FTUEComponent->BindToCoreLoop(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell());
 	}
 
 	BindRestoreEventObservers();
@@ -202,7 +216,7 @@ int32 ANyxGameplayDebugActor::DebugOfferFishToStarwell(UFishDataAsset* Fish)
 UNyxSaveGame* ANyxGameplayDebugActor::DebugCaptureSaveGame()
 {
 	RefreshRewardTargets();
-	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell());
+	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell(), SkillTreeComponent.Get());
 	BroadcastActionResult(SaveGame != nullptr);
 	return SaveGame;
 }
@@ -210,7 +224,7 @@ UNyxSaveGame* ANyxGameplayDebugActor::DebugCaptureSaveGame()
 bool ANyxGameplayDebugActor::DebugApplySaveGame(UNyxSaveGame* SaveGame)
 {
 	RefreshRewardTargets();
-	const bool bApplied = UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell());
+	const bool bApplied = UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell(), SkillTreeComponent.Get());
 	BroadcastActionResult(bApplied);
 	return bApplied;
 }
@@ -218,7 +232,7 @@ bool ANyxGameplayDebugActor::DebugApplySaveGame(UNyxSaveGame* SaveGame)
 bool ANyxGameplayDebugActor::DebugSaveToSlot()
 {
 	RefreshRewardTargets();
-	const bool bSaved = UNyxSaveGameLibrary::SaveNyxGameToSlot(SaveSlotName, SaveUserIndex, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell());
+	const bool bSaved = UNyxSaveGameLibrary::SaveNyxGameToSlot(SaveSlotName, SaveUserIndex, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell(), SkillTreeComponent.Get());
 	OnDebugSaveCompleted.Broadcast(this, SaveSlotName, bSaved);
 	BroadcastActionResult(bSaved);
 	return bSaved;
@@ -227,7 +241,7 @@ bool ANyxGameplayDebugActor::DebugSaveToSlot()
 bool ANyxGameplayDebugActor::DebugLoadFromSlot()
 {
 	RefreshRewardTargets();
-	const bool bLoaded = UNyxSaveGameLibrary::LoadNyxGameFromSlotAndApply(SaveSlotName, SaveUserIndex, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell());
+	const bool bLoaded = UNyxSaveGameLibrary::LoadNyxGameFromSlotAndApply(SaveSlotName, SaveUserIndex, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), GetResolvedStarwell(), SkillTreeComponent.Get());
 	OnDebugLoadCompleted.Broadcast(this, SaveSlotName, bLoaded);
 	BroadcastActionResult(bLoaded);
 	return bLoaded;
@@ -289,14 +303,14 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 	FishingComponent->SetTension(0.85f);
 	FishingComponent->RecordCatchProgress(Fish, true);
 
-	EconomyComponent->RestoreSavedState(0, 0, 0, TMap<FName, int32>());
+	EconomyComponent->RestoreSavedState(0, 0, 0, 0, TMap<FName, int32>());
 
 	Starwell->OfferingThresholds.Reset();
 	FStarwellOfferingThreshold Threshold;
 	Threshold.RequiredProgress = 5;
 	Threshold.StoryUnlockId = TEXT("DebugReliabilityThreshold");
 	Starwell->OfferingThresholds.Add(Threshold);
-	Starwell->RestoreSavedProgress(1, 1, 0, 0, 0, TArray<FName>());
+	Starwell->RestoreSavedProgress(1, 1, 1.0f, 0, 0, 0, TArray<FName>());
 
 	ResetObservedEventCounts();
 
@@ -309,7 +323,7 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 		EchoScalesGranted,
 		Starwell->HasReachedStoryUnlock(TEXT("DebugReliabilityThreshold")) ? TEXT("true") : TEXT("false")));
 
-	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell);
+	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell, SkillTreeComponent.Get());
 	if (SaveGame == nullptr)
 	{
 		AddReliabilityFailure(TEXT("Debug reliability capture failed."));
@@ -327,11 +341,11 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 	FishingComponent->CurrentBiteTime = 4.0f;
 	FishingComponent->SetTension(1.0f);
 	FishingComponent->FishingProgress = FNyxFishingProgressData();
-	EconomyComponent->RestoreSavedState(0, 0, 0, TMap<FName, int32>());
-	Starwell->RestoreSavedProgress(1, 1, 0, 0, 0, TArray<FName>());
+	EconomyComponent->RestoreSavedState(0, 0, 0, 0, TMap<FName, int32>());
+	Starwell->RestoreSavedProgress(1, 1, 1.0f, 0, 0, 0, TArray<FName>());
 
 	ResetObservedEventCounts();
-	if (!UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell))
+	if (!UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell, SkillTreeComponent.Get()))
 	{
 		AddReliabilityFailure(TEXT("Debug reliability apply failed."));
 	}

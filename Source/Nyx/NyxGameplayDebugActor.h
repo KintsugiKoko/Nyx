@@ -13,7 +13,9 @@ class UDeckComponent;
 class UEconomyComponent;
 class UFishDataAsset;
 class UFishingComponent;
+class UKoiSkillTreeComponent;
 class UNyxSaveGame;
+class UNyxFTUEComponent;
 class USceneComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNyxDebugActionSignature, ANyxGameplayDebugActor*, DebugActor, bool, bSucceeded);
@@ -38,6 +40,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Debug")
 	TObjectPtr<UDeckComponent> DeckComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Debug")
+	TObjectPtr<UKoiSkillTreeComponent> SkillTreeComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Debug")
+	TObjectPtr<UNyxFTUEComponent> FTUEComponent;
 
 	// Optional level-placed Starwell. If unset, this actor can spawn one at runtime for PIE tests.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Nyx|Debug|Starwell")

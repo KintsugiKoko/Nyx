@@ -5,6 +5,7 @@
 #include "FishDataAsset.h"
 #include "FishingComponent.h"
 #include "GameFramework/SaveGame.h"
+#include "KoiSkillTreeComponent.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "NyxSaveGame.generated.h"
 
@@ -60,6 +61,9 @@ struct FNyxEconomySaveData
 	int32 EchoScales = 0;
 
 	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Economy")
+	int32 Koi = 0;
+
+	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Economy")
 	TMap<FName, int32> AppliedUpgradeCounts;
 };
 
@@ -96,6 +100,9 @@ struct FNyxStarwellSaveData
 	int32 MinimumEchoScalesPerFish = 1;
 
 	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Starwell")
+	float TurnInMultiplier = 1.0f;
+
+	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Starwell")
 	int32 OfferingProgress = 0;
 
 	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Starwell")
@@ -106,6 +113,15 @@ struct FNyxStarwellSaveData
 
 	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Starwell")
 	TArray<FName> ReachedStoryUnlockIds;
+};
+
+USTRUCT(BlueprintType)
+struct FNyxSkillTreeSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save|Skills")
+	TMap<FName, int32> InvestedSkillRanks;
 };
 
 UCLASS(BlueprintType)
@@ -125,6 +141,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save")
 	FNyxStarwellSaveData Starwell;
+
+	UPROPERTY(BlueprintReadWrite, SaveGame, Category="Nyx|Save")
+	FNyxSkillTreeSaveData SkillTree;
 };
 
 UCLASS()
@@ -137,17 +156,17 @@ public:
 	static UNyxSaveGame* CreateNyxSaveGame();
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Save")
-	static UNyxSaveGame* CaptureNyxSaveGame(UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell);
+	static UNyxSaveGame* CaptureNyxSaveGame(UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent);
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Save")
-	static bool ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell);
+	static bool ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent);
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Save")
-	static bool SaveNyxGameToSlot(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell);
+	static bool SaveNyxGameToSlot(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent);
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Save")
 	static UNyxSaveGame* LoadNyxGameFromSlot(const FString& SlotName, int32 UserIndex);
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Save")
-	static bool LoadNyxGameFromSlotAndApply(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell);
+	static bool LoadNyxGameFromSlotAndApply(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent);
 };

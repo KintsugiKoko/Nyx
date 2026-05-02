@@ -17,6 +17,9 @@ UFishingComponent::UFishingComponent()
 	FishingState = EFishingState::Idle;
 	Tension = 0.0f;
 	CurrentBiteTime = 0.0f;
+	FishingPowerMultiplier = 1.0f;
+	BiteTimeMultiplier = 1.0f;
+	BonusFishPullsOnCatch = 0;
 	bOfferCompletedCatchesToStarwell = true;
 	StarwellTarget = nullptr;
 	EconomyTarget = nullptr;
@@ -86,7 +89,7 @@ bool UFishingComponent::StartReel()
 
 	ClearBiteTimer();
 	SetFishingState(EFishingState::Reeling);
-	SetTension(FMath::Clamp(SelectedFish->ReelDifficulty * 0.1f, 0.0f, 1.0f));
+	SetTension(FMath::Clamp((SelectedFish->ReelDifficulty * 0.1f) / FMath::Max(0.1f, FishingPowerMultiplier), 0.0f, 1.0f));
 	OnReelStarted.Broadcast(this, SelectedFish);
 	return true;
 }
@@ -104,8 +107,16 @@ void UFishingComponent::CompleteCatch(bool bPerfectCatch)
 	CurrentBiteTime = 0.0f;
 	SetTension(0.0f);
 	SetFishingState(EFishingState::CatchComplete);
-	RecordCatchProgress(CaughtFish, bPerfectCatch);
-	ProcessCompletedCatchRewards(CaughtFish);
+	const int32 TotalPulls = FMath::Max(1, 1 + BonusFishPullsOnCatch);
+	for (int32 PullIndex = 0; PullIndex < TotalPulls; ++PullIndex)
+	{
+		RecordCatchProgress(CaughtFish, bPerfectCatch);
+		ProcessCompletedCatchRewards(CaughtFish);
+		if (PullIndex > 0)
+		{
+			OnBonusFishPullResolved.Broadcast(this, CaughtFish, PullIndex, TotalPulls);
+		}
+	}
 	OnCatchCompleted.Broadcast(this, CaughtFish);
 }
 
@@ -136,6 +147,13 @@ void UFishingComponent::SetTension(float NewTension)
 
 	Tension = ClampedTension;
 	OnTensionChanged.Broadcast(this, Tension);
+}
+
+void UFishingComponent::SetFishingSkillModifiers(float NewFishingPowerMultiplier, float NewBiteTimeMultiplier, int32 NewBonusFishPullsOnCatch)
+{
+	FishingPowerMultiplier = FMath::Max(0.1f, NewFishingPowerMultiplier);
+	BiteTimeMultiplier = FMath::Clamp(NewBiteTimeMultiplier, 0.1f, 5.0f);
+	BonusFishPullsOnCatch = FMath::Max(0, NewBonusFishPullsOnCatch);
 }
 
 void UFishingComponent::RestoreSavedState(const TArray<UFishDataAsset*>& RestoredAvailableFish, int32 RestoredRandomSeed, int32 RestoredCastIndex, bool bRestoredOfferCompletedCatchesToStarwell, const FNyxFishingProgressData& RestoredProgress)
@@ -303,7 +321,7 @@ float UFishingComponent::GenerateBiteTimeForFish(const UFishDataAsset* Fish, FRa
 
 	const float MinBiteTime = FMath::Max(0.0f, FMath::Min(Fish->BiteTimeRange.X, Fish->BiteTimeRange.Y));
 	const float MaxBiteTime = FMath::Max(MinBiteTime, FMath::Max(Fish->BiteTimeRange.X, Fish->BiteTimeRange.Y));
-	return RandomStream.FRandRange(MinBiteTime, MaxBiteTime);
+	return RandomStream.FRandRange(MinBiteTime, MaxBiteTime) * FMath::Clamp(BiteTimeMultiplier, 0.1f, 5.0f);
 }
 
 UEconomyComponent* UFishingComponent::ResolveEconomyTarget() const

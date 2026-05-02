@@ -46,6 +46,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Nyx|Validation")
 	static FNyxGameplayValidationResult ValidateSaveGameSystem();
 
+	UFUNCTION(BlueprintCallable, Category="Nyx|Validation")
+	static FNyxGameplayValidationResult ValidateFTUESystem();
+
+	UFUNCTION(BlueprintCallable, Category="Nyx|Validation")
+	static FNyxGameplayValidationResult ValidateKoiSkillTreeSystem();
+
+	UFUNCTION(BlueprintCallable, Category="Nyx|Validation")
+	static FNyxGameplayValidationResult ValidateTravelingMerchantSystem();
+
 	UFUNCTION(BlueprintCallable, Category="Nyx|Validation", meta=(WorldContext="WorldContextObject"))
 	static FNyxGameplayValidationResult RunAllGameplayValidations(UObject* WorldContextObject);
 

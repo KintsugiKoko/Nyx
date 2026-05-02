@@ -10,7 +10,8 @@ enum class ENyxResourceType : uint8
 {
 	Stardust UMETA(DisplayName="Stardust"),
 	MoonPearls UMETA(DisplayName="Moon Pearls"),
-	EchoScales UMETA(DisplayName="Echo Scales")
+	EchoScales UMETA(DisplayName="Echo Scales"),
+	Koi UMETA(DisplayName="Koi")
 };
 
 USTRUCT(BlueprintType)
@@ -32,6 +33,10 @@ enum class ENyxUpgradePrototypeEffect : uint8
 	IncreaseStardustValue UMETA(DisplayName="Increase Stardust Value"),
 	ReduceBiteTime UMETA(DisplayName="Reduce Bite Time"),
 	ReduceReelDifficulty UMETA(DisplayName="Reduce Reel Difficulty"),
+	IncreasePlayerPower UMETA(DisplayName="Increase Player Power"),
+	AddBonusFishPull UMETA(DisplayName="Add Bonus Fish Pull"),
+	IncreaseTurnInMultiplier UMETA(DisplayName="Increase Turn-In Multiplier"),
+	UnlockGatheringTool UMETA(DisplayName="Unlock Gathering Tool"),
 	IncreaseHandSize UMETA(DisplayName="Increase Hand Size"),
 	AddStartingCard UMETA(DisplayName="Add Starting Card"),
 	UnlockFishingTag UMETA(DisplayName="Unlock Fishing Tag")

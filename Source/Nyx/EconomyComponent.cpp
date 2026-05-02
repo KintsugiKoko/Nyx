@@ -7,6 +7,7 @@ UEconomyComponent::UEconomyComponent()
 	Stardust = 0;
 	MoonPearls = 0;
 	EchoScales = 0;
+	Koi = 0;
 }
 
 int32 UEconomyComponent::AddResource(ENyxResourceType ResourceType, int32 Amount)
@@ -54,6 +55,8 @@ int32 UEconomyComponent::GetResourceAmount(ENyxResourceType ResourceType) const
 		return MoonPearls;
 	case ENyxResourceType::EchoScales:
 		return EchoScales;
+	case ENyxResourceType::Koi:
+		return Koi;
 	default:
 		return 0;
 	}
@@ -80,13 +83,14 @@ bool UEconomyComponent::CanAffordCosts(const TArray<FNyxResourceAmount>& Costs) 
 	int64 StardustCost = 0;
 	int64 MoonPearlsCost = 0;
 	int64 EchoScalesCost = 0;
+	int64 KoiCost = 0;
 
-	if (!GetTotalCosts(Costs, StardustCost, MoonPearlsCost, EchoScalesCost))
+	if (!GetTotalCosts(Costs, StardustCost, MoonPearlsCost, EchoScalesCost, KoiCost))
 	{
 		return false;
 	}
 
-	return Stardust >= StardustCost && MoonPearls >= MoonPearlsCost && EchoScales >= EchoScalesCost;
+	return Stardust >= StardustCost && MoonPearls >= MoonPearlsCost && EchoScales >= EchoScalesCost && Koi >= KoiCost;
 }
 
 bool UEconomyComponent::ApplyUpgrade(UUpgradeDataAsset* Upgrade)
@@ -114,11 +118,12 @@ bool UEconomyComponent::ApplyUpgrade(UUpgradeDataAsset* Upgrade)
 	return true;
 }
 
-void UEconomyComponent::RestoreSavedState(int32 RestoredStardust, int32 RestoredMoonPearls, int32 RestoredEchoScales, const TMap<FName, int32>& RestoredAppliedUpgradeCounts)
+void UEconomyComponent::RestoreSavedState(int32 RestoredStardust, int32 RestoredMoonPearls, int32 RestoredEchoScales, int32 RestoredKoi, const TMap<FName, int32>& RestoredAppliedUpgradeCounts)
 {
 	SetResourceAmount(ENyxResourceType::Stardust, RestoredStardust);
 	SetResourceAmount(ENyxResourceType::MoonPearls, RestoredMoonPearls);
 	SetResourceAmount(ENyxResourceType::EchoScales, RestoredEchoScales);
+	SetResourceAmount(ENyxResourceType::Koi, RestoredKoi);
 
 	AppliedUpgradeCounts.Reset();
 	for (const TPair<FName, int32>& UpgradeCount : RestoredAppliedUpgradeCounts)
@@ -170,6 +175,9 @@ void UEconomyComponent::SetResourceAmount(ENyxResourceType ResourceType, int32 N
 	case ENyxResourceType::EchoScales:
 		ResourceValue = &EchoScales;
 		break;
+	case ENyxResourceType::Koi:
+		ResourceValue = &Koi;
+		break;
 	default:
 		return;
 	}
@@ -189,13 +197,14 @@ bool UEconomyComponent::SpendCosts(const TArray<FNyxResourceAmount>& Costs)
 	int64 StardustCost = 0;
 	int64 MoonPearlsCost = 0;
 	int64 EchoScalesCost = 0;
+	int64 KoiCost = 0;
 
-	if (!GetTotalCosts(Costs, StardustCost, MoonPearlsCost, EchoScalesCost))
+	if (!GetTotalCosts(Costs, StardustCost, MoonPearlsCost, EchoScalesCost, KoiCost))
 	{
 		return false;
 	}
 
-	if (Stardust < StardustCost || MoonPearls < MoonPearlsCost || EchoScales < EchoScalesCost)
+	if (Stardust < StardustCost || MoonPearls < MoonPearlsCost || EchoScales < EchoScalesCost || Koi < KoiCost)
 	{
 		return false;
 	}
@@ -203,6 +212,7 @@ bool UEconomyComponent::SpendCosts(const TArray<FNyxResourceAmount>& Costs)
 	SetResourceAmount(ENyxResourceType::Stardust, Stardust - static_cast<int32>(StardustCost));
 	SetResourceAmount(ENyxResourceType::MoonPearls, MoonPearls - static_cast<int32>(MoonPearlsCost));
 	SetResourceAmount(ENyxResourceType::EchoScales, EchoScales - static_cast<int32>(EchoScalesCost));
+	SetResourceAmount(ENyxResourceType::Koi, Koi - static_cast<int32>(KoiCost));
 	return true;
 }
 
@@ -216,11 +226,12 @@ FName UEconomyComponent::GetUpgradeSaveKey(const UUpgradeDataAsset* Upgrade) con
 	return Upgrade->UpgradeId.IsNone() ? Upgrade->GetFName() : Upgrade->UpgradeId;
 }
 
-bool UEconomyComponent::GetTotalCosts(const TArray<FNyxResourceAmount>& Costs, int64& OutStardustCost, int64& OutMoonPearlsCost, int64& OutEchoScalesCost)
+bool UEconomyComponent::GetTotalCosts(const TArray<FNyxResourceAmount>& Costs, int64& OutStardustCost, int64& OutMoonPearlsCost, int64& OutEchoScalesCost, int64& OutKoiCost)
 {
 	OutStardustCost = 0;
 	OutMoonPearlsCost = 0;
 	OutEchoScalesCost = 0;
+	OutKoiCost = 0;
 
 	for (const FNyxResourceAmount& Cost : Costs)
 	{
@@ -240,10 +251,13 @@ bool UEconomyComponent::GetTotalCosts(const TArray<FNyxResourceAmount>& Costs, i
 		case ENyxResourceType::EchoScales:
 			OutEchoScalesCost += Cost.Amount;
 			break;
+		case ENyxResourceType::Koi:
+			OutKoiCost += Cost.Amount;
+			break;
 		default:
 			return false;
 		}
 	}
 
-	return OutStardustCost <= MAX_int32 && OutMoonPearlsCost <= MAX_int32 && OutEchoScalesCost <= MAX_int32;
+	return OutStardustCost <= MAX_int32 && OutMoonPearlsCost <= MAX_int32 && OutEchoScalesCost <= MAX_int32 && OutKoiCost <= MAX_int32;
 }

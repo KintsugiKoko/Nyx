@@ -77,6 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Starwell|Conversion", meta=(ClampMin="0", UIMin="0"))
 	int32 MinimumEchoScalesPerFish;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Starwell|Conversion", meta=(ClampMin="0.1", UIMin="0.1"))
+	float TurnInMultiplier;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, SaveGame, Category="Starwell|Progress", meta=(ClampMin="0", UIMin="0"))
 	int32 OfferingProgress;
 
@@ -125,7 +128,10 @@ public:
 	float GetProgressToNextThreshold() const;
 
 	UFUNCTION(BlueprintCallable, Category="Starwell|Save")
-	void RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValue, int32 RestoredMinimumEchoScalesPerFish, int32 RestoredOfferingProgress, int32 RestoredTotalFishAccepted, int32 RestoredTotalEchoScalesGenerated, const TArray<FName>& RestoredReachedStoryUnlockIds);
+	void RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValue, int32 RestoredMinimumEchoScalesPerFish, float RestoredTurnInMultiplier, int32 RestoredOfferingProgress, int32 RestoredTotalFishAccepted, int32 RestoredTotalEchoScalesGenerated, const TArray<FName>& RestoredReachedStoryUnlockIds);
+
+	UFUNCTION(BlueprintCallable, Category="Starwell|Conversion")
+	void SetTurnInMultiplier(float NewTurnInMultiplier);
 
 	UFUNCTION(BlueprintCallable, Category="Starwell|Validation")
 	bool ValidateOfferingThresholds(UPARAM(ref) TArray<FString>& OutFailures) const;

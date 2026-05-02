@@ -69,7 +69,7 @@ UNyxSaveGame* UNyxSaveGameLibrary::CreateNyxSaveGame()
 	return Cast<UNyxSaveGame>(UGameplayStatics::CreateSaveGameObject(UNyxSaveGame::StaticClass()));
 }
 
-UNyxSaveGame* UNyxSaveGameLibrary::CaptureNyxSaveGame(UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell)
+UNyxSaveGame* UNyxSaveGameLibrary::CaptureNyxSaveGame(UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent)
 {
 	UNyxSaveGame* SaveGame = CreateNyxSaveGame();
 	if (SaveGame == nullptr)
@@ -95,6 +95,7 @@ UNyxSaveGame* UNyxSaveGameLibrary::CaptureNyxSaveGame(UFishingComponent* Fishing
 		SaveGame->Economy.Stardust = EconomyComponent->Stardust;
 		SaveGame->Economy.MoonPearls = EconomyComponent->MoonPearls;
 		SaveGame->Economy.EchoScales = EconomyComponent->EchoScales;
+		SaveGame->Economy.Koi = EconomyComponent->Koi;
 		SaveGame->Economy.AppliedUpgradeCounts = EconomyComponent->AppliedUpgradeCounts;
 	}
 
@@ -111,16 +112,22 @@ UNyxSaveGame* UNyxSaveGameLibrary::CaptureNyxSaveGame(UFishingComponent* Fishing
 	{
 		SaveGame->Starwell.EchoScalesPerBaseStardustValue = Starwell->EchoScalesPerBaseStardustValue;
 		SaveGame->Starwell.MinimumEchoScalesPerFish = Starwell->MinimumEchoScalesPerFish;
+		SaveGame->Starwell.TurnInMultiplier = Starwell->TurnInMultiplier;
 		SaveGame->Starwell.OfferingProgress = Starwell->OfferingProgress;
 		SaveGame->Starwell.TotalFishAccepted = Starwell->TotalFishAccepted;
 		SaveGame->Starwell.TotalEchoScalesGenerated = Starwell->TotalEchoScalesGenerated;
 		SaveGame->Starwell.ReachedStoryUnlockIds = Starwell->ReachedStoryUnlockIds;
 	}
 
+	if (SkillTreeComponent != nullptr)
+	{
+		SaveGame->SkillTree.InvestedSkillRanks = SkillTreeComponent->InvestedSkillRanks;
+	}
+
 	return SaveGame;
 }
 
-bool UNyxSaveGameLibrary::ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell)
+bool UNyxSaveGameLibrary::ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent)
 {
 	if (SaveGame == nullptr)
 	{
@@ -146,6 +153,7 @@ bool UNyxSaveGameLibrary::ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingCompo
 			SaveGame->Economy.Stardust,
 			SaveGame->Economy.MoonPearls,
 			SaveGame->Economy.EchoScales,
+			SaveGame->Economy.Koi,
 			SaveGame->Economy.AppliedUpgradeCounts);
 	}
 
@@ -171,23 +179,30 @@ bool UNyxSaveGameLibrary::ApplyNyxSaveGame(UNyxSaveGame* SaveGame, UFishingCompo
 		Starwell->RestoreSavedProgress(
 			SaveGame->Starwell.EchoScalesPerBaseStardustValue,
 			SaveGame->Starwell.MinimumEchoScalesPerFish,
+			SaveGame->Starwell.TurnInMultiplier,
 			SaveGame->Starwell.OfferingProgress,
 			SaveGame->Starwell.TotalFishAccepted,
 			SaveGame->Starwell.TotalEchoScalesGenerated,
 			SaveGame->Starwell.ReachedStoryUnlockIds);
 	}
 
+	if (SkillTreeComponent != nullptr)
+	{
+		SkillTreeComponent->RestoreSavedState(SaveGame->SkillTree.InvestedSkillRanks);
+		SkillTreeComponent->ApplySkillModifiers(FishingComponent, Starwell);
+	}
+
 	return true;
 }
 
-bool UNyxSaveGameLibrary::SaveNyxGameToSlot(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell)
+bool UNyxSaveGameLibrary::SaveNyxGameToSlot(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent)
 {
 	if (SlotName.IsEmpty())
 	{
 		return false;
 	}
 
-	UNyxSaveGame* SaveGame = CaptureNyxSaveGame(FishingComponent, EconomyComponent, DeckComponent, Starwell);
+	UNyxSaveGame* SaveGame = CaptureNyxSaveGame(FishingComponent, EconomyComponent, DeckComponent, Starwell, SkillTreeComponent);
 	if (SaveGame == nullptr)
 	{
 		return false;
@@ -206,8 +221,8 @@ UNyxSaveGame* UNyxSaveGameLibrary::LoadNyxGameFromSlot(const FString& SlotName, 
 	return Cast<UNyxSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
 }
 
-bool UNyxSaveGameLibrary::LoadNyxGameFromSlotAndApply(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell)
+bool UNyxSaveGameLibrary::LoadNyxGameFromSlotAndApply(const FString& SlotName, int32 UserIndex, UFishingComponent* FishingComponent, UEconomyComponent* EconomyComponent, UDeckComponent* DeckComponent, AStarwell* Starwell, UKoiSkillTreeComponent* SkillTreeComponent)
 {
 	UNyxSaveGame* SaveGame = LoadNyxGameFromSlot(SlotName, UserIndex);
-	return ApplyNyxSaveGame(SaveGame, FishingComponent, EconomyComponent, DeckComponent, Starwell);
+	return ApplyNyxSaveGame(SaveGame, FishingComponent, EconomyComponent, DeckComponent, Starwell, SkillTreeComponent);
 }

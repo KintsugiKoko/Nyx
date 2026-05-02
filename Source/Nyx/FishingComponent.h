@@ -26,6 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FFishingCatchOfferedSignature, UFi
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingTensionChangedSignature, UFishingComponent*, FishingComponent, float, NewTension);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingStateChangedSignature, UFishingComponent*, FishingComponent, EFishingState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingProgressChangedSignature, UFishingComponent*, FishingComponent, FName, FishId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FFishingBonusPullSignature, UFishingComponent*, FishingComponent, UFishDataAsset*, Fish, int32, BonusPullIndex, int32, TotalPulls);
 DECLARE_MULTICAST_DELEGATE_OneParam(FFishingComponentNativeEventSignature, UFishingComponent*);
 
 USTRUCT(BlueprintType)
@@ -97,6 +98,15 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, SaveGame, Category="Fishing|Progress")
 	FNyxFishingProgressData FishingProgress;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fishing|Progression", meta=(ClampMin="0.1", UIMin="0.1"))
+	float FishingPowerMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fishing|Progression", meta=(ClampMin="0.1", ClampMax="5.0", UIMin="0.1", UIMax="5.0"))
+	float BiteTimeMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fishing|Progression", meta=(ClampMin="0", UIMin="0"))
+	int32 BonusFishPullsOnCatch;
+
 	// When true, CompleteCatch automatically offers the caught fish to StarwellTarget.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Fishing|Rewards")
 	bool bOfferCompletedCatchesToStarwell;
@@ -123,6 +133,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Fishing|Events")
 	FFishingFishEventSignature OnCatchCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category="Fishing|Events")
+	FFishingBonusPullSignature OnBonusFishPullResolved;
 
 	UPROPERTY(BlueprintAssignable, Category="Fishing|Events")
 	FFishingCatchOfferedSignature OnCatchOfferedToStarwell;
@@ -165,6 +178,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Fishing")
 	void SetTension(float NewTension);
+
+	UFUNCTION(BlueprintCallable, Category="Fishing|Progression")
+	void SetFishingSkillModifiers(float NewFishingPowerMultiplier, float NewBiteTimeMultiplier, int32 NewBonusFishPullsOnCatch);
 
 	UFUNCTION(BlueprintCallable, Category="Fishing|Save")
 	void RestoreSavedState(const TArray<UFishDataAsset*>& RestoredAvailableFish, int32 RestoredRandomSeed, int32 RestoredCastIndex, bool bRestoredOfferCompletedCatchesToStarwell, const FNyxFishingProgressData& RestoredProgress);

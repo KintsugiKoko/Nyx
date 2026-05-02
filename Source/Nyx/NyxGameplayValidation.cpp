@@ -7,8 +7,12 @@
 #include "FishDataAsset.h"
 #include "FishingComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "KoiSkillDataAsset.h"
+#include "KoiSkillTreeComponent.h"
+#include "NyxFTUEComponent.h"
 #include "NyxSaveGame.h"
 #include "Starwell.h"
+#include "TravelingMerchant.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Engine/Engine.h"
@@ -96,6 +100,7 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateEconomySyste
 	UEconomyComponent* Economy = NewObject<UEconomyComponent>(GetTransientPackage());
 	Economy->AddResource(ENyxResourceType::Stardust, 25);
 	Economy->AddResource(ENyxResourceType::MoonPearls, 3);
+	Economy->AddResource(ENyxResourceType::Koi, 2);
 
 	if (Economy->Stardust != 25)
 	{
@@ -127,9 +132,14 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateEconomySyste
 	MoonPearlCost.ResourceType = ENyxResourceType::MoonPearls;
 	MoonPearlCost.Amount = 2;
 
+	FNyxResourceAmount KoiCost;
+	KoiCost.ResourceType = ENyxResourceType::Koi;
+	KoiCost.Amount = 1;
+
 	Upgrade->Costs.Add(StardustCostA);
 	Upgrade->Costs.Add(StardustCostB);
 	Upgrade->Costs.Add(MoonPearlCost);
+	Upgrade->Costs.Add(KoiCost);
 
 	if (!Economy->CanAfford(Upgrade))
 	{
@@ -141,7 +151,7 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateEconomySyste
 		Result.AddFailure(TEXT("ApplyUpgrade failed for an affordable upgrade."));
 	}
 
-	if (Economy->Stardust != 0 || Economy->MoonPearls != 1 || Economy->GetUpgradeApplyCount(Upgrade) != 1)
+	if (Economy->Stardust != 0 || Economy->MoonPearls != 1 || Economy->Koi != 1 || Economy->GetUpgradeApplyCount(Upgrade) != 1)
 	{
 		Result.AddFailure(TEXT("ApplyUpgrade did not spend resources or track apply count correctly."));
 	}
@@ -314,10 +324,11 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 	Fishing->RecordCatchProgress(Fish, true);
 	Economy->AddResource(ENyxResourceType::Stardust, 42);
 	Economy->AddResource(ENyxResourceType::EchoScales, 8);
+	Economy->AddResource(ENyxResourceType::Koi, 3);
 	Deck->DrawPile.Add(Card);
 	Deck->ShuffleSeed = 99;
 
-	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(Fishing, Economy, Deck, nullptr);
+	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(Fishing, Economy, Deck, nullptr, nullptr);
 	if (SaveGame == nullptr)
 	{
 		Result.AddFailure(TEXT("CaptureNyxSaveGame returned null."));
@@ -329,7 +340,7 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 	const int32 ValidationUserIndex = 0;
 	UGameplayStatics::DeleteGameInSlot(ValidationSlotName, ValidationUserIndex);
 
-	if (!UNyxSaveGameLibrary::SaveNyxGameToSlot(ValidationSlotName, ValidationUserIndex, Fishing, Economy, Deck, nullptr))
+	if (!UNyxSaveGameLibrary::SaveNyxGameToSlot(ValidationSlotName, ValidationUserIndex, Fishing, Economy, Deck, nullptr, nullptr))
 	{
 		Result.AddFailure(TEXT("SaveNyxGameToSlot failed during disk round-trip validation."));
 	}
@@ -340,7 +351,7 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 		{
 			Result.AddFailure(TEXT("LoadNyxGameFromSlot returned null during disk round-trip validation."));
 		}
-		else if (LoadedSaveGame->Fishing.RandomSeed != 77 || LoadedSaveGame->Fishing.CastIndex != 3 || LoadedSaveGame->Fishing.FishingState != EFishingState::Idle || LoadedSaveGame->Fishing.Tension != 0.0f || LoadedSaveGame->Fishing.CurrentBiteTime != 0.0f || LoadedSaveGame->Fishing.Progress.TotalCatches != 1 || LoadedSaveGame->Fishing.Progress.TotalPerfectCatches != 1 || LoadedSaveGame->Economy.Stardust != 42 || LoadedSaveGame->Economy.EchoScales != 8 || LoadedSaveGame->Deck.ShuffleSeed != 99)
+		else if (LoadedSaveGame->Fishing.RandomSeed != 77 || LoadedSaveGame->Fishing.CastIndex != 3 || LoadedSaveGame->Fishing.FishingState != EFishingState::Idle || LoadedSaveGame->Fishing.Tension != 0.0f || LoadedSaveGame->Fishing.CurrentBiteTime != 0.0f || LoadedSaveGame->Fishing.Progress.TotalCatches != 1 || LoadedSaveGame->Fishing.Progress.TotalPerfectCatches != 1 || LoadedSaveGame->Economy.Stardust != 42 || LoadedSaveGame->Economy.EchoScales != 8 || LoadedSaveGame->Economy.Koi != 3 || LoadedSaveGame->Deck.ShuffleSeed != 99)
 		{
 			Result.AddFailure(TEXT("Disk round-trip save validation did not preserve primitive gameplay state."));
 		}
@@ -358,10 +369,11 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 	Fishing->FishingProgress = FNyxFishingProgressData();
 	Economy->Stardust = 0;
 	Economy->EchoScales = 0;
+	Economy->Koi = 0;
 	Deck->DrawPile.Reset();
 	Deck->ShuffleSeed = 0;
 
-	if (!UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, Fishing, Economy, Deck, nullptr))
+	if (!UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, Fishing, Economy, Deck, nullptr, nullptr))
 	{
 		Result.AddFailure(TEXT("ApplyNyxSaveGame failed."));
 	}
@@ -381,7 +393,7 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 		Result.AddFailure(TEXT("Durable fishing collection progress did not restore from save."));
 	}
 
-	if (Economy->Stardust != 42 || Economy->EchoScales != 8)
+	if (Economy->Stardust != 42 || Economy->EchoScales != 8 || Economy->Koi != 3)
 	{
 		Result.AddFailure(TEXT("Economy resources did not restore from save."));
 	}
@@ -395,6 +407,214 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateSaveGameSyst
 	return Result;
 }
 
+FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateFTUESystem()
+{
+	FNyxGameplayValidationResult Result;
+
+	UNyxFTUEComponent* FTUE = NewObject<UNyxFTUEComponent>(GetTransientPackage());
+	UFishingComponent* Fishing = NewObject<UFishingComponent>(GetTransientPackage());
+	UDeckComponent* Deck = NewObject<UDeckComponent>(GetTransientPackage());
+	UFishDataAsset* Fish = MakeTransientFish(TEXT("ValidationFTUEFish"), 3);
+	UCardDataAsset* Card = MakeTransientCard(TEXT("ValidationFTUECard"));
+
+	if (FTUE == nullptr || Fishing == nullptr || Deck == nullptr || Fish == nullptr || Card == nullptr)
+	{
+		Result.AddFailure(TEXT("FTUE validation could not create transient test objects."));
+		FinalizeValidationResult(Result, TEXT("FTUE"));
+		return Result;
+	}
+
+	if (FTUE->StepDefinitions.Num() != 7)
+	{
+		Result.AddFailure(TEXT("FTUE should have six core-loop steps plus a completion step."));
+	}
+
+	for (const FNyxFTUEStepDefinition& Definition : FTUE->StepDefinitions)
+	{
+		if (Definition.Title.IsEmpty() || Definition.Body.IsEmpty() || Definition.ActionLabel.IsEmpty())
+		{
+			Result.AddFailure(TEXT("FTUE step definitions should have readable title, body, and action text."));
+			break;
+		}
+
+		if (Definition.Title.ToString().Len() > 32 || Definition.ActionLabel.ToString().Len() > 16 || Definition.Body.ToString().Len() > 140)
+		{
+			Result.AddFailure(TEXT("FTUE copy should stay short enough for a small non-invasive prompt."));
+			break;
+		}
+	}
+
+	FTUE->BindToCoreLoop(Fishing, nullptr, Deck, nullptr);
+	FTUE->StartFTUE();
+
+	if (Fishing->FishingState != EFishingState::Idle || Deck->GetDrawPileCount() != 0 || Deck->GetHandCount() != 0 || Deck->GetDiscardPileCount() != 0)
+	{
+		Result.AddFailure(TEXT("Starting FTUE should not mutate fishing or deck gameplay state."));
+	}
+
+	Fishing->OnCastStarted.Broadcast(Fishing);
+	if (FTUE->CurrentStep != ENyxFTUEStep::StartReel)
+	{
+		Result.AddFailure(TEXT("FTUE did not advance from cast to reel step."));
+	}
+
+	Fishing->OnReelStarted.Broadcast(Fishing, Fish);
+	if (FTUE->CurrentStep != ENyxFTUEStep::CompleteCatch)
+	{
+		Result.AddFailure(TEXT("FTUE did not advance from reel to catch step."));
+	}
+
+	Fishing->OnCatchCompleted.Broadcast(Fishing, Fish);
+	if (FTUE->CurrentStep != ENyxFTUEStep::OfferCatch)
+	{
+		Result.AddFailure(TEXT("FTUE did not advance from catch to offer step."));
+	}
+
+	Fishing->OnCatchOfferedToStarwell.Broadcast(Fishing, Fish, nullptr, nullptr, 3);
+	if (FTUE->CurrentStep != ENyxFTUEStep::DrawCard)
+	{
+		Result.AddFailure(TEXT("FTUE did not advance from offer to draw-card step."));
+	}
+
+	Deck->OnCardDrawn.Broadcast(Deck, Card);
+	if (FTUE->CurrentStep != ENyxFTUEStep::PlayCard)
+	{
+		Result.AddFailure(TEXT("FTUE did not advance from draw-card to play-card step."));
+	}
+
+	Deck->OnCardPlayed.Broadcast(Deck, Card);
+	if (!FTUE->bFTUECompleted || FTUE->CurrentStep != ENyxFTUEStep::Complete)
+	{
+		Result.AddFailure(TEXT("FTUE did not complete after the card play step."));
+	}
+
+	FinalizeValidationResult(Result, TEXT("FTUE"));
+	return Result;
+}
+
+FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateKoiSkillTreeSystem()
+{
+	FNyxGameplayValidationResult Result;
+
+	UEconomyComponent* Economy = NewObject<UEconomyComponent>(GetTransientPackage());
+	UFishingComponent* Fishing = NewObject<UFishingComponent>(GetTransientPackage());
+	AStarwell* Starwell = NewObject<AStarwell>(GetTransientPackage());
+	UKoiSkillTreeComponent* SkillTree = NewObject<UKoiSkillTreeComponent>(GetTransientPackage());
+
+	UKoiSkillDataAsset* PowerSkill = NewObject<UKoiSkillDataAsset>(GetTransientPackage());
+	PowerSkill->SkillId = TEXT("ValidationPower");
+	PowerSkill->MaxRank = 2;
+	PowerSkill->BaseKoiCost = 1;
+	PowerSkill->KoiCostIncreasePerRank = 1;
+	PowerSkill->Effect = ENyxKoiSkillEffect::PlayerPower;
+	PowerSkill->EffectValuePerRank = 0.25f;
+
+	UKoiSkillDataAsset* BiteSkill = NewObject<UKoiSkillDataAsset>(GetTransientPackage());
+	BiteSkill->SkillId = TEXT("ValidationBite");
+	BiteSkill->BaseKoiCost = 1;
+	BiteSkill->Effect = ENyxKoiSkillEffect::FasterBites;
+	BiteSkill->EffectValuePerRank = 0.2f;
+	BiteSkill->PrerequisiteSkillIds.Add(PowerSkill->SkillId);
+
+	UKoiSkillDataAsset* PullSkill = NewObject<UKoiSkillDataAsset>(GetTransientPackage());
+	PullSkill->SkillId = TEXT("ValidationPull");
+	PullSkill->BaseKoiCost = 1;
+	PullSkill->Effect = ENyxKoiSkillEffect::BonusFishPulls;
+	PullSkill->EffectValuePerRank = 1.0f;
+
+	UKoiSkillDataAsset* TurnInSkill = NewObject<UKoiSkillDataAsset>(GetTransientPackage());
+	TurnInSkill->SkillId = TEXT("ValidationTurnIn");
+	TurnInSkill->BaseKoiCost = 1;
+	TurnInSkill->Effect = ENyxKoiSkillEffect::TurnInMultiplier;
+	TurnInSkill->EffectValuePerRank = 0.5f;
+
+	SkillTree->AvailableSkills.Add(PowerSkill);
+	SkillTree->AvailableSkills.Add(BiteSkill);
+	SkillTree->AvailableSkills.Add(PullSkill);
+	SkillTree->AvailableSkills.Add(TurnInSkill);
+	Economy->AddResource(ENyxResourceType::Koi, 5);
+
+	if (SkillTree->CanInvestSkill(BiteSkill, Economy))
+	{
+		Result.AddFailure(TEXT("Koi skill tree allowed investing in a skill before its prerequisite was met."));
+	}
+
+	if (!SkillTree->InvestSkill(PowerSkill, Economy) || SkillTree->GetSkillRank(PowerSkill) != 1 || Economy->Koi != 4)
+	{
+		Result.AddFailure(TEXT("Koi skill investment did not spend Koi or increase rank correctly."));
+	}
+
+	if (!SkillTree->CanInvestSkill(BiteSkill, Economy) || !SkillTree->InvestSkill(BiteSkill, Economy))
+	{
+		Result.AddFailure(TEXT("Koi skill tree did not unlock a prerequisite-gated skill after investing prerequisite."));
+	}
+
+	SkillTree->InvestSkill(PullSkill, Economy);
+	SkillTree->InvestSkill(TurnInSkill, Economy);
+	SkillTree->ApplySkillModifiers(Fishing, Starwell);
+
+	if (Fishing->FishingPowerMultiplier <= 1.0f || Fishing->BiteTimeMultiplier >= 1.0f || Fishing->BonusFishPullsOnCatch != 1)
+	{
+		Result.AddFailure(TEXT("Koi skill modifiers did not apply expected fishing power, bite time, or bonus pull changes."));
+	}
+
+	if (Starwell->TurnInMultiplier <= 1.0f)
+	{
+		Result.AddFailure(TEXT("Koi skill modifiers did not apply expected Starwell turn-in multiplier."));
+	}
+
+	TMap<FName, int32> RestoredRanks;
+	RestoredRanks.Add(TEXT("ValidationPower"), 2);
+	SkillTree->RestoreSavedState(RestoredRanks);
+	if (SkillTree->GetSkillRankById(TEXT("ValidationPower")) != 2)
+	{
+		Result.AddFailure(TEXT("Koi skill tree did not restore saved skill ranks."));
+	}
+
+	FinalizeValidationResult(Result, TEXT("Koi Skill Tree"));
+	return Result;
+}
+
+FNyxGameplayValidationResult UNyxGameplayValidationLibrary::ValidateTravelingMerchantSystem()
+{
+	FNyxGameplayValidationResult Result;
+
+	ATravelingMerchant* Merchant = NewObject<ATravelingMerchant>(GetTransientPackage());
+	UEconomyComponent* Economy = NewObject<UEconomyComponent>(GetTransientPackage());
+	UUpgradeDataAsset* Upgrade = NewObject<UUpgradeDataAsset>(GetTransientPackage());
+	Upgrade->UpgradeId = TEXT("ValidationMerchantUpgrade");
+	Upgrade->MaxApplications = 1;
+	Upgrade->PrototypeEffect = ENyxUpgradePrototypeEffect::UnlockGatheringTool;
+
+	FNyxResourceAmount Cost;
+	Cost.ResourceType = ENyxResourceType::EchoScales;
+	Cost.Amount = 3;
+	Upgrade->Costs.Add(Cost);
+
+	TArray<UUpgradeDataAsset*> Inventory;
+	Inventory.Add(Upgrade);
+	Merchant->SetUpgradeInventory(Inventory);
+	Economy->AddResource(ENyxResourceType::EchoScales, 3);
+
+	if (!Merchant->CanPurchaseUpgrade(Upgrade, Economy) || !Merchant->PurchaseUpgrade(Upgrade, Economy))
+	{
+		Result.AddFailure(TEXT("Traveling merchant could not sell an affordable inventory upgrade."));
+	}
+
+	if (Economy->EchoScales != 0 || Economy->GetUpgradeApplyCount(Upgrade) != 1)
+	{
+		Result.AddFailure(TEXT("Traveling merchant purchase did not spend resources or apply the upgrade."));
+	}
+
+	if (Merchant->PurchaseUpgrade(Upgrade, Economy))
+	{
+		Result.AddFailure(TEXT("Traveling merchant allowed purchasing an upgrade beyond MaxApplications."));
+	}
+
+	FinalizeValidationResult(Result, TEXT("Traveling Merchant"));
+	return Result;
+}
+
 FNyxGameplayValidationResult UNyxGameplayValidationLibrary::RunAllGameplayValidations(UObject* WorldContextObject)
 {
 	FNyxGameplayValidationResult Result;
@@ -404,6 +624,9 @@ FNyxGameplayValidationResult UNyxGameplayValidationLibrary::RunAllGameplayValida
 	MergeValidationResult(Result, ValidateDeckSystem());
 	MergeValidationResult(Result, ValidateFishingSystem());
 	MergeValidationResult(Result, ValidateSaveGameSystem());
+	MergeValidationResult(Result, ValidateFTUESystem());
+	MergeValidationResult(Result, ValidateKoiSkillTreeSystem());
+	MergeValidationResult(Result, ValidateTravelingMerchantSystem());
 	MergeValidationResult(Result, ValidateStarwellSystem(WorldContextObject));
 
 	FinalizeValidationResult(Result, TEXT("All Gameplay"));
@@ -469,6 +692,39 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNyxSaveGameValidationAutomationTest, "Nyx.Game
 bool FNyxSaveGameValidationAutomationTest::RunTest(const FString& Parameters)
 {
 	const FNyxGameplayValidationResult Result = UNyxGameplayValidationLibrary::ValidateSaveGameSystem();
+	for (const FString& Failure : Result.Failures)
+	{
+		AddError(Failure);
+	}
+	return Result.bPassed;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNyxFTUEValidationAutomationTest, "Nyx.Gameplay.FTUE", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FNyxFTUEValidationAutomationTest::RunTest(const FString& Parameters)
+{
+	const FNyxGameplayValidationResult Result = UNyxGameplayValidationLibrary::ValidateFTUESystem();
+	for (const FString& Failure : Result.Failures)
+	{
+		AddError(Failure);
+	}
+	return Result.bPassed;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNyxKoiSkillTreeValidationAutomationTest, "Nyx.Gameplay.KoiSkillTree", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FNyxKoiSkillTreeValidationAutomationTest::RunTest(const FString& Parameters)
+{
+	const FNyxGameplayValidationResult Result = UNyxGameplayValidationLibrary::ValidateKoiSkillTreeSystem();
+	for (const FString& Failure : Result.Failures)
+	{
+		AddError(Failure);
+	}
+	return Result.bPassed;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNyxTravelingMerchantValidationAutomationTest, "Nyx.Gameplay.TravelingMerchant", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FNyxTravelingMerchantValidationAutomationTest::RunTest(const FString& Parameters)
+{
+	const FNyxGameplayValidationResult Result = UNyxGameplayValidationLibrary::ValidateTravelingMerchantSystem();
 	for (const FString& Failure : Result.Failures)
 	{
 		AddError(Failure);

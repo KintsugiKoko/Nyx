@@ -7,6 +7,8 @@
 class UDeckComponent;
 class UEconomyComponent;
 class UFishingComponent;
+class UKoiSkillTreeComponent;
+class UNyxFTUEComponent;
 class USkeletalMeshComponent;
 class ANyxCatPlayerCharacter;
 
@@ -28,6 +30,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Components")
 	TObjectPtr<UDeckComponent> DeckComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Components")
+	TObjectPtr<UKoiSkillTreeComponent> SkillTreeComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Nyx|Components")
+	TObjectPtr<UNyxFTUEComponent> FTUEComponent;
 
 	// Socket on the cat skeletal mesh where a fishing rod prop can attach.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Nyx|Animation|Sockets")
@@ -61,4 +69,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Nyx|Animation")
 	void HandleFishingCatchAnimationCue();
+
+	UFUNCTION(BlueprintCallable, Category="Nyx|FTUE")
+	void RefreshFTUEBindings();
+
+protected:
+	virtual void BeginPlay() override;
 };

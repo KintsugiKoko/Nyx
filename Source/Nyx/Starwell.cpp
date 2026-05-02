@@ -34,6 +34,7 @@ AStarwell::AStarwell()
 
 	EchoScalesPerBaseStardustValue = 1;
 	MinimumEchoScalesPerFish = 1;
+	TurnInMultiplier = 1.0f;
 	OfferingProgress = 0;
 	TotalFishAccepted = 0;
 	TotalEchoScalesGenerated = 0;
@@ -75,7 +76,8 @@ int32 AStarwell::CalculateEchoScalesForFish(UFishDataAsset* Fish) const
 
 	const int64 ConvertedValue = static_cast<int64>(FMath::Max(0, Fish->BaseStardustValue)) * FMath::Max(0, EchoScalesPerBaseStardustValue);
 	const int32 ClampedValue = static_cast<int32>(FMath::Clamp<int64>(ConvertedValue, 0, MAX_int32));
-	return FMath::Max(FMath::Max(0, MinimumEchoScalesPerFish), ClampedValue);
+	const int32 BaseReward = FMath::Max(FMath::Max(0, MinimumEchoScalesPerFish), ClampedValue);
+	return FMath::Clamp(FMath::CeilToInt(static_cast<float>(BaseReward) * FMath::Max(0.1f, TurnInMultiplier)), 0, MAX_int32);
 }
 
 bool AStarwell::HasReachedStoryUnlock(FName StoryUnlockId) const
@@ -104,10 +106,11 @@ float AStarwell::GetProgressToNextThreshold() const
 	return FMath::Clamp(static_cast<float>(OfferingProgress) / static_cast<float>(NextRequiredProgress), 0.0f, 1.0f);
 }
 
-void AStarwell::RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValue, int32 RestoredMinimumEchoScalesPerFish, int32 RestoredOfferingProgress, int32 RestoredTotalFishAccepted, int32 RestoredTotalEchoScalesGenerated, const TArray<FName>& RestoredReachedStoryUnlockIds)
+void AStarwell::RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValue, int32 RestoredMinimumEchoScalesPerFish, float RestoredTurnInMultiplier, int32 RestoredOfferingProgress, int32 RestoredTotalFishAccepted, int32 RestoredTotalEchoScalesGenerated, const TArray<FName>& RestoredReachedStoryUnlockIds)
 {
 	EchoScalesPerBaseStardustValue = FMath::Max(0, RestoredEchoScalesPerBaseStardustValue);
 	MinimumEchoScalesPerFish = FMath::Max(0, RestoredMinimumEchoScalesPerFish);
+	TurnInMultiplier = FMath::Max(0.1f, RestoredTurnInMultiplier);
 	OfferingProgress = FMath::Max(0, RestoredOfferingProgress);
 	TotalFishAccepted = FMath::Max(0, RestoredTotalFishAccepted);
 	TotalEchoScalesGenerated = FMath::Max(0, RestoredTotalEchoScalesGenerated);
@@ -125,6 +128,11 @@ void AStarwell::RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValu
 	OnStarwellSaveApplied.Broadcast(this);
 	OnStarwellStateRestored.Broadcast(this);
 	OnStarwellStateRestoredNative.Broadcast(this);
+}
+
+void AStarwell::SetTurnInMultiplier(float NewTurnInMultiplier)
+{
+	TurnInMultiplier = FMath::Max(0.1f, NewTurnInMultiplier);
 }
 
 bool AStarwell::ValidateOfferingThresholds(TArray<FString>& OutFailures) const
