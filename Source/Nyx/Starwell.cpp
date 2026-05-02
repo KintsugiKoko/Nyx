@@ -124,6 +124,7 @@ void AStarwell::RestoreSavedProgress(int32 RestoredEchoScalesPerBaseStardustValu
 	OnOfferingProgressChanged.Broadcast(this, OfferingProgress);
 	OnStarwellSaveApplied.Broadcast(this);
 	OnStarwellStateRestored.Broadcast(this);
+	OnStarwellStateRestoredNative.Broadcast(this);
 }
 
 bool AStarwell::ValidateOfferingThresholds(TArray<FString>& OutFailures) const
@@ -177,6 +178,7 @@ void AStarwell::CheckOfferingThresholds()
 
 		ReachedStoryUnlockIds.Add(ThresholdSaveKey);
 		OnOfferingThresholdReached.Broadcast(this, ThresholdSaveKey, Threshold.RequiredProgress, Threshold.StoryUnlockTags);
+		OnOfferingThresholdReachedNative.Broadcast(this, ThresholdSaveKey, Threshold.RequiredProgress, Threshold.StoryUnlockTags);
 		OnStoryUnlockAvailable.Broadcast(this, ThresholdSaveKey, Threshold.StoryUnlockTags);
 	}
 }

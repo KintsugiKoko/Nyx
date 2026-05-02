@@ -243,10 +243,18 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugRunGameplayValidations
 FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliability()
 {
 	FNyxGameplayValidationResult Result;
+	LastSaveLoadReliabilityValidationLog.Reset();
+	RecordSaveLoadReliabilityLog(TEXT("Starting Save/Load Reliability validation."));
+
+	auto AddReliabilityFailure = [this, &Result](const FString& Failure)
+	{
+		Result.AddFailure(Failure);
+		RecordSaveLoadReliabilityLog(FString::Printf(TEXT("FAIL: %s"), *Failure));
+	};
 
 	if (FishingComponent == nullptr || EconomyComponent == nullptr || DeckComponent == nullptr)
 	{
-		Result.AddFailure(TEXT("Debug actor is missing one or more gameplay components."));
+		AddReliabilityFailure(TEXT("Debug actor is missing one or more gameplay components."));
 		BroadcastActionResult(false);
 		return Result;
 	}
@@ -254,31 +262,16 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 	AStarwell* Starwell = GetWorld() != nullptr ? GetWorld()->SpawnActor<AStarwell>(AStarwell::StaticClass(), GetActorTransform()) : nullptr;
 	if (Starwell == nullptr)
 	{
-		Result.AddFailure(TEXT("Debug actor could not spawn an isolated Starwell for validation."));
+		AddReliabilityFailure(TEXT("Debug actor could not spawn an isolated Starwell for validation."));
 		BroadcastActionResult(false);
 		return Result;
 	}
 
 	BindRestoreEventObservers();
-	Starwell->OnStarwellStateRestored.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleStarwellStateRestored);
-	Starwell->OnOfferingThresholdReached.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleStarwellThresholdReached);
-	UE_LOG(LogTemp, Log, TEXT("Nyx debug binding probe: HasFishingFunction=%d FishingBound=%d EconomyBound=%d DeckBound=%d StarwellBound=%d."),
-		FindFunction(TEXT("HandleFishingStateRestored")) != nullptr,
-		FishingComponent->OnFishingStateRestored.IsBound(),
-		EconomyComponent->OnEconomySaveApplied.IsBound(),
-		DeckComponent->OnDeckSaveApplied.IsBound(),
-		Starwell->OnStarwellStateRestored.IsBound());
-
-	FishingComponent->OnFishingStateRestored.Broadcast(FishingComponent.Get());
-	EconomyComponent->OnEconomySaveApplied.Broadcast(EconomyComponent.Get());
-	DeckComponent->OnDeckSaveApplied.Broadcast(DeckComponent.Get());
-	Starwell->OnStarwellStateRestored.Broadcast(Starwell);
-	UE_LOG(LogTemp, Log, TEXT("Nyx debug restore event counts after binding probe: Fishing=%d Economy=%d Deck=%d Starwell=%d."),
-		ObservedFishingRestoreEvents,
-		ObservedEconomyRestoreEvents,
-		ObservedDeckRestoreEvents,
-		ObservedStarwellRestoreEvents);
-	ResetObservedEventCounts();
+	Starwell->OnStarwellStateRestoredNative.RemoveAll(this);
+	Starwell->OnStarwellStateRestoredNative.AddUObject(this, &ANyxGameplayDebugActor::HandleStarwellStateRestored);
+	Starwell->OnOfferingThresholdReachedNative.RemoveAll(this);
+	Starwell->OnOfferingThresholdReachedNative.AddUObject(this, &ANyxGameplayDebugActor::HandleStarwellThresholdReached);
 
 	UFishDataAsset* Fish = NewObject<UFishDataAsset>(this, MakeUniqueObjectName(this, UFishDataAsset::StaticClass(), FName(TEXT("DebugReliabilityGlowMinnow"))));
 	Fish->FishId = TEXT("DebugReliabilityGlowMinnow");
@@ -310,17 +303,24 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 	const int32 EchoScalesGranted = Starwell->AcceptCaughtFish(Fish, EconomyComponent.Get());
 	if (EchoScalesGranted != 5 || !Starwell->HasReachedStoryUnlock(TEXT("DebugReliabilityThreshold")))
 	{
-		Result.AddFailure(TEXT("Debug reliability setup did not reach the expected Starwell threshold."));
+		AddReliabilityFailure(TEXT("Debug reliability setup did not reach the expected Starwell threshold."));
 	}
+	RecordSaveLoadReliabilityLog(FString::Printf(TEXT("Setup offering granted %d Echo Scales and reached threshold: %s."),
+		EchoScalesGranted,
+		Starwell->HasReachedStoryUnlock(TEXT("DebugReliabilityThreshold")) ? TEXT("true") : TEXT("false")));
 
 	UNyxSaveGame* SaveGame = UNyxSaveGameLibrary::CaptureNyxSaveGame(FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell);
 	if (SaveGame == nullptr)
 	{
-		Result.AddFailure(TEXT("Debug reliability capture failed."));
+		AddReliabilityFailure(TEXT("Debug reliability capture failed."));
 		Starwell->Destroy();
 		BroadcastActionResult(false);
 		return Result;
 	}
+	RecordSaveLoadReliabilityLog(FString::Printf(TEXT("Captured save with Starwell progress=%d, fish accepted=%d, threshold IDs=%d."),
+		SaveGame->Starwell.OfferingProgress,
+		SaveGame->Starwell.TotalFishAccepted,
+		SaveGame->Starwell.ReachedStoryUnlockIds.Num()));
 
 	FishingComponent->SelectedFish = Fish;
 	FishingComponent->FishingState = EFishingState::Reeling;
@@ -333,50 +333,91 @@ FNyxGameplayValidationResult ANyxGameplayDebugActor::DebugValidateSaveLoadReliab
 	ResetObservedEventCounts();
 	if (!UNyxSaveGameLibrary::ApplyNyxSaveGame(SaveGame, FishingComponent.Get(), EconomyComponent.Get(), DeckComponent.Get(), Starwell))
 	{
-		Result.AddFailure(TEXT("Debug reliability apply failed."));
+		AddReliabilityFailure(TEXT("Debug reliability apply failed."));
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Nyx debug restore event counts after apply: Fishing=%d Economy=%d Deck=%d Starwell=%d Threshold=%d."),
+	RecordSaveLoadReliabilityLog(FString::Printf(TEXT("Observed post-load events: Fishing=%d Economy=%d Deck=%d Starwell=%d Threshold=%d."),
 		ObservedFishingRestoreEvents,
 		ObservedEconomyRestoreEvents,
 		ObservedDeckRestoreEvents,
 		ObservedStarwellRestoreEvents,
-		ObservedThresholdReachedEvents);
+		ObservedThresholdReachedEvents));
 
 	if (FishingComponent->FishingState != EFishingState::Idle || FishingComponent->SelectedFish != nullptr || FishingComponent->CurrentBiteTime != 0.0f || !FMath::IsNearlyZero(FishingComponent->Tension))
 	{
-		Result.AddFailure(TEXT("Active fishing runtime state did not restore to a clean Idle state."));
+		AddReliabilityFailure(TEXT("Active fishing runtime state did not restore to a clean Idle state."));
+	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("Active fishing runtime state restored to clean Idle."));
 	}
 
 	if (!FishingComponent->HasDiscoveredFish(TEXT("DebugReliabilityGlowMinnow")) || FishingComponent->GetCatchCountForFish(TEXT("DebugReliabilityGlowMinnow")) != 1 || FishingComponent->GetPerfectCatchCountForFish(TEXT("DebugReliabilityGlowMinnow")) != 1)
 	{
-		Result.AddFailure(TEXT("Durable fishing collection progress did not restore correctly."));
+		AddReliabilityFailure(TEXT("Durable fishing collection progress did not restore correctly."));
+	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("Durable fishing collection progress restored correctly."));
 	}
 
-	if (Starwell->OfferingProgress != 5 || Starwell->TotalFishAccepted != 1 || !Starwell->HasReachedStoryUnlock(TEXT("DebugReliabilityThreshold")))
+	int32 ClaimedReliabilityThresholdCount = 0;
+	for (const FName& ClaimedThresholdId : Starwell->ReachedStoryUnlockIds)
 	{
-		Result.AddFailure(TEXT("Starwell progress or claimed threshold IDs did not restore correctly."));
+		if (ClaimedThresholdId == TEXT("DebugReliabilityThreshold"))
+		{
+			++ClaimedReliabilityThresholdCount;
+		}
+	}
+
+	if (Starwell->OfferingProgress != 5 || Starwell->TotalFishAccepted != 1 || Starwell->TotalEchoScalesGenerated != 5 || ClaimedReliabilityThresholdCount != 1)
+	{
+		AddReliabilityFailure(FString::Printf(TEXT("Starwell progress or claimed threshold IDs did not restore correctly. Progress=%d Accepted=%d EchoGenerated=%d ClaimedThresholdCount=%d."),
+			Starwell->OfferingProgress,
+			Starwell->TotalFishAccepted,
+			Starwell->TotalEchoScalesGenerated,
+			ClaimedReliabilityThresholdCount));
+	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("Starwell progress and claimed threshold ID restored correctly."));
 	}
 
 	if (ObservedFishingRestoreEvents <= 0 || ObservedEconomyRestoreEvents <= 0 || ObservedDeckRestoreEvents <= 0 || ObservedStarwellRestoreEvents <= 0)
 	{
-		Result.AddFailure(FString::Printf(TEXT("One or more post-load restoration events were not observed by the debug actor. Fishing=%d Economy=%d Deck=%d Starwell=%d"),
+		AddReliabilityFailure(FString::Printf(TEXT("One or more post-load restoration events were not observed by the debug actor. Fishing=%d Economy=%d Deck=%d Starwell=%d"),
 			ObservedFishingRestoreEvents,
 			ObservedEconomyRestoreEvents,
 			ObservedDeckRestoreEvents,
 			ObservedStarwellRestoreEvents));
 	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("Blueprint-facing post-load restoration hooks were mirrored and observed by the debug actor."));
+	}
 
 	if (ObservedThresholdReachedEvents != 0)
 	{
-		Result.AddFailure(TEXT("Threshold reached event fired during save restoration."));
+		AddReliabilityFailure(TEXT("Threshold reached event fired during save restoration."));
+	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("No one-time threshold event replayed during save restoration."));
 	}
 
 	ResetObservedEventCounts();
+	const int32 ClaimedThresholdCountBeforeDuplicateCheck = Starwell->ReachedStoryUnlockIds.Num();
 	Starwell->AcceptCaughtFish(Fish, EconomyComponent.Get());
 	if (ObservedThresholdReachedEvents != 0)
 	{
-		Result.AddFailure(TEXT("Claimed Starwell threshold fired again after loading and accepting another fish."));
+		AddReliabilityFailure(TEXT("Claimed Starwell threshold fired again after loading and accepting another fish."));
+	}
+	else if (Starwell->ReachedStoryUnlockIds.Num() != ClaimedThresholdCountBeforeDuplicateCheck)
+	{
+		AddReliabilityFailure(TEXT("Claimed Starwell threshold IDs changed after a duplicate-threshold offering check."));
+	}
+	else
+	{
+		RecordSaveLoadReliabilityLog(TEXT("Duplicate threshold reward did not fire after loading and accepting another fish."));
 	}
 
 	Starwell->Destroy();
@@ -411,23 +452,28 @@ void ANyxGameplayDebugActor::BindRestoreEventObservers()
 {
 	if (FishingComponent != nullptr)
 	{
-		FishingComponent->OnFishingStateRestored.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleFishingStateRestored);
+		FishingComponent->OnFishingStateRestoredNative.RemoveAll(this);
+		FishingComponent->OnFishingStateRestoredNative.AddUObject(this, &ANyxGameplayDebugActor::HandleFishingStateRestored);
 	}
 
 	if (EconomyComponent != nullptr)
 	{
-		EconomyComponent->OnEconomySaveApplied.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleEconomyStateRestored);
+		EconomyComponent->OnEconomySaveAppliedNative.RemoveAll(this);
+		EconomyComponent->OnEconomySaveAppliedNative.AddUObject(this, &ANyxGameplayDebugActor::HandleEconomyStateRestored);
 	}
 
 	if (DeckComponent != nullptr)
 	{
-		DeckComponent->OnDeckSaveApplied.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleDeckStateRestored);
+		DeckComponent->OnDeckSaveAppliedNative.RemoveAll(this);
+		DeckComponent->OnDeckSaveAppliedNative.AddUObject(this, &ANyxGameplayDebugActor::HandleDeckStateRestored);
 	}
 
 	if (AStarwell* Starwell = GetResolvedStarwell())
 	{
-		Starwell->OnStarwellStateRestored.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleStarwellStateRestored);
-		Starwell->OnOfferingThresholdReached.AddUniqueDynamic(this, &ANyxGameplayDebugActor::HandleStarwellThresholdReached);
+		Starwell->OnStarwellStateRestoredNative.RemoveAll(this);
+		Starwell->OnStarwellStateRestoredNative.AddUObject(this, &ANyxGameplayDebugActor::HandleStarwellStateRestored);
+		Starwell->OnOfferingThresholdReachedNative.RemoveAll(this);
+		Starwell->OnOfferingThresholdReachedNative.AddUObject(this, &ANyxGameplayDebugActor::HandleStarwellThresholdReached);
 	}
 }
 
@@ -438,6 +484,12 @@ void ANyxGameplayDebugActor::ResetObservedEventCounts()
 	ObservedDeckRestoreEvents = 0;
 	ObservedStarwellRestoreEvents = 0;
 	ObservedThresholdReachedEvents = 0;
+}
+
+void ANyxGameplayDebugActor::RecordSaveLoadReliabilityLog(const FString& Message)
+{
+	LastSaveLoadReliabilityValidationLog.Add(Message);
+	UE_LOG(LogTemp, Log, TEXT("Nyx Save/Load Reliability: %s"), *Message);
 }
 
 void ANyxGameplayDebugActor::HandleFishingStateRestored(UFishingComponent* RestoredFishingComponent)

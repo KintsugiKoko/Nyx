@@ -120,6 +120,7 @@ void UDeckComponent::RestoreSavedState(const TArray<UCardDataAsset*>& RestoredDr
 
 	BroadcastDeckChanged();
 	OnDeckSaveApplied.Broadcast(this);
+	OnDeckSaveAppliedNative.Broadcast(this);
 }
 
 int32 UDeckComponent::GetDrawPileCount() const

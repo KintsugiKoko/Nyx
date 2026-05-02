@@ -130,6 +130,7 @@ void UEconomyComponent::RestoreSavedState(int32 RestoredStardust, int32 Restored
 	}
 
 	OnEconomySaveApplied.Broadcast(this);
+	OnEconomySaveAppliedNative.Broadcast(this);
 }
 
 int32 UEconomyComponent::GetUpgradeApplyCount(const UUpgradeDataAsset* Upgrade) const

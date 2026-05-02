@@ -76,6 +76,10 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Nyx|Debug|Validation")
 	int32 ObservedThresholdReachedEvents;
 
+	// Blueprint-readable trace of the last save/load reliability validation run for PIE debugging.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Nyx|Debug|Validation")
+	TArray<FString> LastSaveLoadReliabilityValidationLog;
+
 	UFUNCTION(BlueprintCallable, Category="Nyx|Debug|Setup")
 	void RefreshRewardTargets();
 
@@ -130,21 +134,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Nyx|Debug|Validation")
 	FNyxGameplayValidationResult DebugValidateSaveLoadReliability();
 
-	UFUNCTION()
-	void HandleFishingStateRestored(UFishingComponent* RestoredFishingComponent);
-
-	UFUNCTION()
-	void HandleEconomyStateRestored(UEconomyComponent* RestoredEconomyComponent);
-
-	UFUNCTION()
-	void HandleDeckStateRestored(UDeckComponent* RestoredDeckComponent);
-
-	UFUNCTION()
-	void HandleStarwellStateRestored(AStarwell* RestoredStarwell);
-
-	UFUNCTION()
-	void HandleStarwellThresholdReached(AStarwell* RestoredStarwell, FName StoryUnlockId, int32 RequiredProgress, const FGameplayTagContainer& StoryUnlockTags);
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -157,4 +146,10 @@ private:
 	void BroadcastActionResult(bool bSucceeded);
 	void BindRestoreEventObservers();
 	void ResetObservedEventCounts();
+	void RecordSaveLoadReliabilityLog(const FString& Message);
+	void HandleFishingStateRestored(UFishingComponent* RestoredFishingComponent);
+	void HandleEconomyStateRestored(UEconomyComponent* RestoredEconomyComponent);
+	void HandleDeckStateRestored(UDeckComponent* RestoredDeckComponent);
+	void HandleStarwellStateRestored(AStarwell* RestoredStarwell);
+	void HandleStarwellThresholdReached(AStarwell* RestoredStarwell, FName StoryUnlockId, int32 RequiredProgress, const FGameplayTagContainer& StoryUnlockTags);
 };

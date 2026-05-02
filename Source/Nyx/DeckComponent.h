@@ -9,6 +9,7 @@ class UDeckComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDeckCardEventSignature, UDeckComponent*, DeckComponent, UCardDataAsset*, Card);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDeckChangedSignature, UDeckComponent*, DeckComponent);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDeckNativeChangedSignature, UDeckComponent*);
 
 UCLASS(ClassGroup=(Cards), Blueprintable, meta=(BlueprintSpawnableComponent))
 class NYX_API UDeckComponent : public UActorComponent
@@ -49,6 +50,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Deck|Events")
 	FDeckChangedSignature OnDeckSaveApplied;
+
+	// Native mirror for C++ tests and validation; Blueprint presentation should bind to OnDeckSaveApplied.
+	FDeckNativeChangedSignature OnDeckSaveAppliedNative;
 
 	UFUNCTION(BlueprintCallable, Category="Deck")
 	UCardDataAsset* DrawCard();

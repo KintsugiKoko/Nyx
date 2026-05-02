@@ -10,6 +10,7 @@ class UEconomyComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FResourceChangedSignature, UEconomyComponent*, EconomyComponent, ENyxResourceType, ResourceType, int32, NewAmount, int32, Delta);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FUpgradeAppliedSignature, UEconomyComponent*, EconomyComponent, UUpgradeDataAsset*, Upgrade);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEconomyComponentEventSignature, UEconomyComponent*, EconomyComponent);
+DECLARE_MULTICAST_DELEGATE_OneParam(FEconomyComponentNativeEventSignature, UEconomyComponent*);
 
 UCLASS(ClassGroup=(Economy), Blueprintable, meta=(BlueprintSpawnableComponent))
 class NYX_API UEconomyComponent : public UActorComponent
@@ -40,6 +41,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Economy|Events")
 	FEconomyComponentEventSignature OnEconomySaveApplied;
+
+	// Native mirror for C++ tests and validation; Blueprint presentation should bind to OnEconomySaveApplied.
+	FEconomyComponentNativeEventSignature OnEconomySaveAppliedNative;
 
 	UFUNCTION(BlueprintCallable, Category="Economy|Resources")
 	int32 AddResource(ENyxResourceType ResourceType, int32 Amount);

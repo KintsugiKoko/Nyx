@@ -35,6 +35,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStarwellProgressChangedSignature, 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FStarwellThresholdReachedSignature, AStarwell*, Starwell, FName, StoryUnlockId, int32, RequiredProgress, const FGameplayTagContainer&, StoryUnlockTags);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FStarwellStoryUnlockSignature, AStarwell*, Starwell, FName, StoryUnlockId, const FGameplayTagContainer&, StoryUnlockTags);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FStarwellEventSignature, AStarwell*, Starwell);
+DECLARE_MULTICAST_DELEGATE_OneParam(FStarwellNativeEventSignature, AStarwell*);
+DECLARE_MULTICAST_DELEGATE_FourParams(FStarwellNativeThresholdReachedSignature, AStarwell*, FName, int32, const FGameplayTagContainer&);
 
 UCLASS(Blueprintable)
 class NYX_API AStarwell : public AActor
@@ -105,6 +107,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Starwell|Events")
 	FStarwellEventSignature OnStarwellStateRestored;
+
+	// Native mirrors for C++ tests and validation; Blueprint presentation should bind to the BlueprintAssignable events above.
+	FStarwellNativeEventSignature OnStarwellStateRestoredNative;
+	FStarwellNativeThresholdReachedSignature OnOfferingThresholdReachedNative;
 
 	UFUNCTION(BlueprintCallable, Category="Starwell")
 	int32 AcceptCaughtFish(UFishDataAsset* Fish, UEconomyComponent* EconomyComponent);

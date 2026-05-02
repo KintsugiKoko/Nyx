@@ -176,6 +176,7 @@ void UFishingComponent::RestoreSavedState(const TArray<UFishDataAsset*>& Restore
 	SetFishingState(EFishingState::Idle);
 	OnFishingSaveApplied.Broadcast(this);
 	OnFishingStateRestored.Broadcast(this);
+	OnFishingStateRestoredNative.Broadcast(this);
 }
 
 void UFishingComponent::RecordCatchProgress(UFishDataAsset* Fish, bool bPerfectCatch)

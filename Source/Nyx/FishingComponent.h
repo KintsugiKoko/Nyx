@@ -26,6 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FFishingCatchOfferedSignature, UFi
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingTensionChangedSignature, UFishingComponent*, FishingComponent, float, NewTension);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingStateChangedSignature, UFishingComponent*, FishingComponent, EFishingState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFishingProgressChangedSignature, UFishingComponent*, FishingComponent, FName, FishId);
+DECLARE_MULTICAST_DELEGATE_OneParam(FFishingComponentNativeEventSignature, UFishingComponent*);
 
 USTRUCT(BlueprintType)
 struct FNyxFishCollectionEntry
@@ -140,6 +141,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Fishing|Events")
 	FFishingComponentEventSignature OnFishingStateRestored;
+
+	// Native mirror for C++ tests and validation; Blueprint presentation should bind to OnFishingStateRestored.
+	FFishingComponentNativeEventSignature OnFishingStateRestoredNative;
 
 	UPROPERTY(BlueprintAssignable, Category="Fishing|Events")
 	FFishingProgressChangedSignature OnFishingProgressChanged;
